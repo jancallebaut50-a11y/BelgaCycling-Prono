@@ -1,102 +1,9 @@
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { Race, Rider, User, Prediction, RaceResult, Score, Ranking } from '../types';
 import { calculateScoresForRace } from '../services/scoringService';
+import { supabase } from '../services/supabase';
 
-// --- MOCK DATA ---
-const initialRiders: Rider[] = [
-  { id: '1', name: 'Tadej Pogačar', team: 'UAE Team Emirates', nationality: 'SLO' },
-  { id: '2', name: 'Jonas Vingegaard', team: 'Team Visma | Lease a Bike', nationality: 'DEN' },
-  { id: '3', name: 'Mathieu van der Poel', team: 'Alpecin-Deceuninck', nationality: 'NED' },
-  { id: '4', name: 'Wout van Aert', team: 'Team Visma | Lease a Bike', nationality: 'BEL' },
-  { id: '5', name: 'Remco Evenepoel', team: 'Soudal Quick-Step', nationality: 'BEL' },
-  { id: '6', name: 'Primož Roglič', team: 'BORA - hansgrohe', nationality: 'SLO' },
-  { id: '7', name: 'Mads Pedersen', team: 'Lidl-Trek', nationality: 'DEN' },
-  { id: '8', name: 'Jasper Philipsen', team: 'Alpecin-Deceuninck', nationality: 'BEL' },
-  { id: '9', name: 'Tom Pidcock', team: 'INEOS Grenadiers', nationality: 'GBR' },
-  { id: '10', name: 'Filippo Ganna', team: 'INEOS Grenadiers', nationality: 'ITA' },
-  { id: '11', name: 'Christophe Laporte', team: 'Team Visma | Lease a Bike', nationality: 'FRA' },
-  { id: '12', name: 'Biniam Girmay', team: 'Intermarché - Wanty', nationality: 'ERI' },
-  { id: '13', name: 'Julian Alaphilippe', team: 'Soudal Quick-Step', nationality: 'FRA' },
-  { id: '14', name: 'Sepp Kuss', team: 'Team Visma | Lease a Bike', nationality: 'USA' },
-  { id: '15', name: 'David Gaudu', team: 'Groupama - FDJ', nationality: 'FRA' },
-  { id: '16', name: 'Enric Mas', team: 'Movistar Team', nationality: 'ESP' },
-  { id: '17', name: 'Jai Hindley', team: 'BORA - hansgrohe', nationality: 'AUS' },
-  { id: '18', name: 'Adam Yates', team: 'UAE Team Emirates', nationality: 'GBR' },
-  { id: '19', name: 'Carlos Rodríguez', team: 'INEOS Grenadiers', nationality: 'ESP' },
-  { id: '20', name: 'Simon Yates', team: 'Team Jayco AlUla', nationality: 'GBR' },
-  { id: '21', name: 'Ben O\'Connor', team: 'Decathlon AG2R La Mondiale Team', nationality: 'AUS' },
-  { id: '22', name: 'Matteo Jorgenson', team: 'Team Visma | Lease a Bike', nationality: 'USA' },
-];
-
-const initialRaces: Race[] = [
-  { id: '1', name: 'Milano-Sanremo', date: '2024-03-16T10:00:00Z', deadline: '2024-03-16T09:00:00Z', status: 'finished' },
-  { id: '2', name: 'Ronde van Vlaanderen', date: '2024-03-31T10:00:00Z', deadline: '2024-03-31T09:00:00Z', status: 'finished' },
-  { id: '3', name: 'Paris-Roubaix', date: '2024-04-07T10:00:00Z', deadline: '2024-04-07T09:00:00Z', status: 'finished' },
-  { id: '4', name: 'Liège-Bastogne-Liège', date: '2024-04-21T10:00:00Z', deadline: '2024-04-21T09:00:00Z', status: 'finished' },
-  { id: '5', name: 'Il Lombardia', date: '2024-10-12T10:00:00Z', deadline: '2024-10-12T09:00:00Z', status: 'upcoming' },
-  { id: '6', name: 'Tour de France - Stage 1', date: '2024-06-29T12:00:00Z', deadline: '2024-06-29T11:00:00Z', status: 'upcoming' },
-  { id: '7', name: 'Clásica San Sebastián', date: '2024-08-10T13:00:00Z', deadline: '2024-08-10T12:00:00Z', status: 'upcoming' },
-  { id: '8', name: 'Vuelta a España - Stage 1', date: '2024-08-17T14:00:00Z', deadline: '2024-08-17T13:00:00Z', status: 'upcoming' },
-  { id: '9', name: 'World Championships - Road Race', date: '2024-09-29T10:00:00Z', deadline: '2024-09-29T09:00:00Z', status: 'upcoming' },
-];
-
-const initialUsers: User[] = [
-  { id: '1', username: 'CycloFan', name: 'Jan Janssen', email: 'jan@example.com' },
-  { id: '2', username: 'SuperTifoso', name: 'Maria Rossi', email: 'maria@example.com' },
-];
-
-const initialPredictions: Prediction[] = [
-    { userId: '1', raceId: '1', riders: ['3', '8', '1'] },
-    { userId: '2', raceId: '1', riders: ['8', '3', '7'] },
-    { userId: '1', raceId: '2', riders: ['3', '4', '2'] },
-    { userId: '2', raceId: '2', riders: ['3', '7', '2'] },
-    { userId: '1', raceId: '3', riders: ['3', '8', '7'] },
-    { userId: '2', raceId: '3', riders: ['4', '11', '3'] },
-    { userId: '1', raceId: '4', riders: ['1', '5', '9'] },
-    { userId: '2', raceId: '4', riders: ['1', '15', '18'] },
-];
-
-const initialResults: RaceResult[] = [
-    { raceId: '1', results: [
-        { riderId: '8', rank: 1 }, { riderId: '3', rank: 2 }, { riderId: '1', rank: 3 },
-        { riderId: '4', rank: 4 }, { riderId: '10', rank: 5 }, { riderId: '6', rank: 6 },
-        { riderId: '7', rank: 7 }, { riderId: '2', rank: 8 }, { riderId: '9', rank: 9 },
-        { riderId: '5', rank: 10 }, { riderId: '11', rank: 11 }, { riderId: '12', rank: 12 },
-        { riderId: '13', rank: 13 }, { riderId: '14', rank: 14 }, { riderId: '15', rank: 15 },
-        { riderId: '16', rank: 16 }, { riderId: '17', rank: 17 }, { riderId: '18', rank: 18 },
-        { riderId: '19', rank: 19 }, { riderId: '20', rank: 20 },
-    ]},
-    { raceId: '2', results: [
-        { riderId: '3', rank: 1 }, { riderId: '2', rank: 2 }, { riderId: '7', rank: 3 },
-        { riderId: '4', rank: 4 }, { riderId: '1', rank: 5 }, { riderId: '5', rank: 6 },
-        { riderId: '6', rank: 7 }, { riderId: '8', rank: 8 }, { riderId: '9', rank: 9 },
-        { riderId: '10', rank: 10 }, { riderId: '11', rank: 11 }, { riderId: '12', rank: 12 },
-        { riderId: '13', rank: 13 }, { riderId: '14', rank: 14 }, { riderId: '15', rank: 15 },
-        { riderId: '16', rank: 16 }, { riderId: '17', rank: 17 }, { riderId: '18', rank: 18 },
-        { riderId: '19', rank: 19 }, { riderId: '20', rank: 20 },
-    ]},
-    { raceId: '3', results: [
-        { riderId: '3', rank: 1 }, { riderId: '8', rank: 2 }, { riderId: '7', rank: 3 },
-        { riderId: '4', rank: 4 }, { riderId: '11', rank: 5 }, { riderId: '10', rank: 6 },
-        { riderId: '6', rank: 7 }, { riderId: '5', rank: 8 }, { riderId: '9', rank: 9 },
-        { riderId: '12', rank: 10 }, { riderId: '1', rank: 11 }, { riderId: '2', rank: 12 },
-        { riderId: '13', rank: 13 }, { riderId: '14', rank: 14 }, { riderId: '15', rank: 15 },
-        { riderId: '16', rank: 16 }, { riderId: '17', rank: 17 }, { riderId: '18', rank: 18 },
-        { riderId: '19', rank: 19 }, { riderId: '20', rank: 20 },
-    ]},
-    { raceId: '4', results: [
-        { riderId: '1', rank: 1 }, { riderId: '9', rank: 2 }, { riderId: '15', rank: 3 },
-        { riderId: '5', rank: 4 }, { riderId: '18', rank: 5 }, { riderId: '21', rank: 6 },
-        { riderId: '17', rank: 7 }, { riderId: '6', rank: 8 }, { riderId: '19', rank: 9 },
-        { riderId: '22', rank: 10 }, { riderId: '2', rank: 11 }, { riderId: '3', rank: 12 },
-        { riderId: '4', rank: 13 }, { riderId: '7', rank: 14 }, { riderId: '8', rank: 15 },
-        { riderId: '10', rank: 16 }, { riderId: '11', rank: 17 }, { riderId: '12', rank: 18 },
-        { riderId: '13', rank: 19 }, { riderId: '14', rank: 20 },
-    ]}
-];
-
-// --- CONTEXT ---
 interface DataContextType {
     riders: Rider[];
     races: Race[];
@@ -106,89 +13,195 @@ interface DataContextType {
     scores: Score[];
     rankings: Ranking[];
     currentUser: User | null;
-    addRace: (race: Omit<Race, 'id' | 'status'>) => void;
-    addRiders: (newRiders: Rider[]) => void;
-    addResult: (result: RaceResult) => void;
-    addPrediction: (prediction: Prediction) => void;
+    loading: boolean;
+    addRace: (race: Omit<Race, 'id' | 'status'>) => Promise<void>;
+    addRiders: (newRiders: Rider[]) => Promise<void>;
+    addResult: (result: RaceResult) => Promise<void>;
+    addPrediction: (prediction: Prediction) => Promise<void>;
+    logout: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [riders, setRiders] = useState<Rider[]>(initialRiders);
-    const [races, setRaces] = useState<Race[]>(initialRaces);
-    const [users, setUsers] = useState<User[]>(initialUsers);
-    const [predictions, setPredictions] = useState<Prediction[]>(initialPredictions);
-    const [results, setResults] = useState<RaceResult[]>(initialResults);
+    const [riders, setRiders] = useState<Rider[]>([]);
+    const [races, setRaces] = useState<Race[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [predictions, setPredictions] = useState<Prediction[]>([]);
+    const [results, setResults] = useState<RaceResult[]>([]);
     const [scores, setScores] = useState<Score[]>([]);
     const [rankings, setRankings] = useState<Ranking[]>([]);
-    const [currentUser] = useState<User | null>(users[0]); // Mock current user
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const recalculateAll = useCallback((newResults: RaceResult[], currentPredictions: Prediction[]) => {
-        const allScores: Score[] = [];
-        newResults.forEach(result => {
-            const racePredictions = currentPredictions.filter(p => p.raceId === result.raceId);
-            const raceScores = calculateScoresForRace(racePredictions, result);
-            allScores.push(...raceScores);
-        });
-        setScores(allScores);
+    const fetchUserProfile = async (userId: string) => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
         
-        const userScores: { [userId: string]: number } = {};
-        allScores.forEach(score => {
-            if (!userScores[score.userId]) {
-                userScores[score.userId] = 0;
-            }
-            userScores[score.userId] += score.totalPoints;
-        });
+        if (data) {
+            setCurrentUser({
+                id: data.id,
+                username: data.username,
+                name: data.full_name,
+                email: '', 
+                isAdmin: data.is_admin || false
+            });
+        }
+    };
 
-        const newRankings = Object.entries(userScores)
-            .map(([userId, totalScore]) => ({ userId, totalScore }))
-            .sort((a, b) => b.totalScore - a.totalScore)
-            .map((item, index) => ({ ...item, rank: index + 1 }));
-        setRankings(newRankings);
+    const fetchData = useCallback(async () => {
+        try {
+            const [
+                { data: ridersData },
+                { data: racesData },
+                { data: resultsData },
+                { data: scoresData },
+                { data: predictionsData },
+                { data: profilesData }
+            ] = await Promise.all([
+                supabase.from('riders').select('*'),
+                supabase.from('races').select('*').order('date', { ascending: true }),
+                supabase.from('results').select('*'),
+                supabase.from('scores').select('*'),
+                supabase.from('predictions').select('*'),
+                supabase.from('profiles').select('id, username')
+            ]);
+
+            if (ridersData) setRiders(ridersData);
+            if (racesData) setRaces(racesData);
+            if (profilesData) {
+                setUsers(profilesData.map(p => ({ id: p.id, username: p.username, name: p.username, email: '' })));
+            }
+            if (predictionsData) {
+                const mappedPredictions: Prediction[] = predictionsData.map(p => ({
+                    userId: p.user_id,
+                    raceId: p.race_id,
+                    riders: p.rider_ids as [string, string, string]
+                }));
+                setPredictions(mappedPredictions);
+            }
+            if (resultsData) {
+                const mappedResults: RaceResult[] = resultsData.map(r => ({
+                    raceId: r.race_id,
+                    results: r.results_json
+                }));
+                setResults(mappedResults);
+            }
+            if (scoresData) {
+                const mappedScores: Score[] = scoresData.map(s => ({
+                    userId: s.user_id,
+                    raceId: s.race_id,
+                    basePoints: s.base_points,
+                    bonusPoints: s.bonus_points,
+                    totalPoints: s.total_points,
+                    bonusType: s.bonus_type
+                }));
+                setScores(mappedScores);
+                
+                const userTotals: Record<string, number> = {};
+                mappedScores.forEach(s => {
+                    userTotals[s.userId] = (userTotals[s.userId] || 0) + s.totalPoints;
+                });
+                const newRankings: Ranking[] = Object.entries(userTotals)
+                    .map(([userId, totalScore]) => ({ userId, totalScore, rank: 0 }))
+                    .sort((a, b) => b.totalScore - a.totalScore)
+                    .map((r, idx) => ({ ...r, rank: idx + 1 }));
+                setRankings(newRankings);
+            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    useState(() => {
-        recalculateAll(initialResults, initialPredictions);
-    });
+    useEffect(() => {
+        fetchData();
 
-    const addRace = (race: Omit<Race, 'id' | 'status'>) => {
-        const newRace: Race = {
-            id: String(races.length + 1),
-            ...race,
-            status: 'upcoming'
-        };
-        setRaces(prev => [...prev, newRace]);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.user) {
+                fetchUserProfile(session.user.id);
+            } else {
+                setCurrentUser(null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [fetchData]);
+
+    const addRace = async (race: Omit<Race, 'id' | 'status'>) => {
+        const { error } = await supabase.from('races').insert([
+            { name: race.name, date: race.date, deadline: race.deadline, status: 'upcoming' }
+        ]);
+        if (error) throw error;
+        fetchData();
     };
 
-    const addRiders = (newRiders: Rider[]) => {
-        setRiders(prevRiders => {
-            const riderMap = new Map(prevRiders.map(r => [r.id, r]));
-            newRiders.forEach(newRider => {
-                riderMap.set(newRider.id, newRider); // Adds new or updates existing
-            });
-            return Array.from(riderMap.values());
-        });
+    const addRiders = async (newRiders: Rider[]) => {
+        const { error } = await supabase.from('riders').upsert(newRiders);
+        if (error) throw error;
+        fetchData();
     };
 
-    const addResult = (result: RaceResult) => {
-        setResults(prevResults => {
-            const updatedResults = [...prevResults.filter(r => r.raceId !== result.raceId), result];
-            recalculateAll(updatedResults, predictions);
-            return updatedResults;
+    const addResult = async (result: RaceResult) => {
+        const { error: resError } = await supabase.from('results').upsert({
+            race_id: result.raceId,
+            results_json: result.results
         });
-        setRaces(prevRaces => prevRaces.map(r => r.id === result.raceId ? { ...r, status: 'finished' } : r));
+        if (resError) throw resError;
+
+        await supabase.from('races').update({ status: 'finished' }).eq('id', result.raceId);
+
+        const { data: racePredictions } = await supabase.from('predictions').select('*').eq('race_id', result.raceId);
+        if (racePredictions) {
+            const mappedPredictions: Prediction[] = racePredictions.map(p => ({
+                userId: p.user_id,
+                raceId: p.race_id,
+                riders: p.rider_ids as [string, string, string]
+            }));
+            const calculatedScores = calculateScoresForRace(mappedPredictions, result);
+            const dbScores = calculatedScores.map(s => ({
+                user_id: s.userId,
+                race_id: s.raceId,
+                // Fix: Access camelCase property names defined in the Score interface
+                base_points: s.basePoints,
+                bonus_points: s.bonusPoints,
+                total_points: s.totalPoints,
+                bonus_type: s.bonusType
+            }));
+            await supabase.from('scores').upsert(dbScores);
+        }
+        fetchData();
     };
     
-    const addPrediction = (prediction: Prediction) => {
-        setPredictions(prev => {
-            const otherPredictions = prev.filter(p => !(p.userId === prediction.userId && p.raceId === prediction.raceId));
-            return [...otherPredictions, prediction];
+    const addPrediction = async (prediction: Prediction) => {
+        // Strict deadline check before saving
+        const { data: race } = await supabase.from('races').select('deadline').eq('id', prediction.raceId).single();
+        if (race && new Date(race.deadline) <= new Date()) {
+            throw new Error("Prediction deadline has passed for this race.");
+        }
+
+        const { error } = await supabase.from('predictions').upsert({
+            user_id: prediction.userId,
+            race_id: prediction.raceId,
+            rider_ids: prediction.riders
         });
+        if (error) throw error;
+        fetchData();
+    };
+
+    const logout = async () => {
+        await supabase.auth.signOut();
     };
 
     return (
-        <DataContext.Provider value={{ riders, races, users, predictions, results, scores, rankings, currentUser, addRace, addRiders, addResult, addPrediction }}>
+        <DataContext.Provider value={{ 
+            riders, races, users, predictions, results, scores, rankings, currentUser, loading,
+            addRace, addRiders, addResult, addPrediction, logout
+        }}>
             {children}
         </DataContext.Provider>
     );

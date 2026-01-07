@@ -19,6 +19,7 @@ export interface User {
   username: string;
   name: string;
   email: string;
+  isAdmin?: boolean;
 }
 
 export interface Prediction {

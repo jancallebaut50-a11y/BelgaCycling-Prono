@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -12,17 +12,20 @@ import UserPage from './pages/UserPage';
 import LoginPage from './pages/LoginPage';
 import RulesPage from './pages/RulesPage';
 import RiderManagementPage from './pages/RiderManagementPage';
+import { useData } from './hooks/useMockData';
 
 const App: React.FC = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { currentUser, loading } = useData();
 
-  const handleAdminLogin = (user: string, pass: string): boolean => {
-    if (user === 'admin' && pass === 'Cakoto@32') {
-      setIsAdmin(true);
-      return true;
-    }
-    return false;
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-yellow-400 text-xl font-bold animate-pulse">Loading BelgaCycling...</div>
+      </div>
+    );
+  }
+
+  const isAdmin = currentUser?.isAdmin || false;
 
   return (
     <HashRouter>
@@ -38,15 +41,15 @@ const App: React.FC = () => {
             <Route path="/user" element={<UserPage />} />
             <Route 
               path="/admin" 
-              element={isAdmin ? <AdminPage /> : <Navigate to="/login?admin=true" replace />} 
+              element={isAdmin ? <AdminPage /> : <Navigate to="/login" replace />} 
             />
              <Route 
               path="/riders" 
-              element={isAdmin ? <RiderManagementPage /> : <Navigate to="/login?admin=true" replace />} 
+              element={isAdmin ? <RiderManagementPage /> : <Navigate to="/login" replace />} 
             />
             <Route 
               path="/login" 
-              element={<LoginPage onAdminLogin={handleAdminLogin} />} 
+              element={<LoginPage onAdminLogin={() => false} />} 
             />
           </Routes>
         </main>
