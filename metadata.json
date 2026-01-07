@@ -1,0 +1,5 @@
+{
+  "name": "BelgaCycling",
+  "description": "A prediction game application for UCI cycling races. Users can predict top riders for upcoming races, and scores are automatically calculated based on actual race results. Features include user profiles, race results, overall rankings, and an admin panel for managing races and results.",
+  "requestFramePermissions": []
+}
