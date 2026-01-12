@@ -4,24 +4,23 @@ import { createClient } from '@supabase/supabase-js';
 /**
  * In a static deployment (like GitHub Pages), process.env is usually not available 
  * at runtime unless injected during the build process. 
- * Ensure you have set these up in your build settings or replace them with 
- * hardcoded strings if you are deploying a public-facing non-sensitive demo.
  */
 
 const getEnv = (key: string): string => {
-    try {
-        // @ts-ignore
-        return process.env[key] || '';
-    } catch (e) {
-        return '';
+    // Safer check for process to avoid "process is not defined" ReferenceError
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+        return process.env[key];
     }
+    return '';
 };
 
+// IMPORTANT: Replace these with your actual Supabase Project URL and Anon Key 
+// if you are not using an automated build system that injects them.
 const supabaseUrl = getEnv('SUPABASE_URL') || 'https://your-project-id.supabase.co';
 const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY') || 'your-anon-key';
 
 if (supabaseUrl.includes('your-project-id')) {
-    console.warn("Supabase credentials not found. Please check your environment variables.");
+    console.error("CRITICAL: Supabase credentials are missing! Please update services/supabase.ts with your actual Project URL and Anon Key.");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

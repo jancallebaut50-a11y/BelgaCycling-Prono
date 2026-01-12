@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -16,11 +16,26 @@ import { useData } from './hooks/useMockData';
 
 const App: React.FC = () => {
   const { currentUser, loading } = useData();
+  const [timedOut, setTimedOut] = useState(false);
+
+  // If loading takes more than 10 seconds, something is likely wrong with the connection
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) setTimedOut(true);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-yellow-400 text-xl font-bold animate-pulse">Loading BelgaCycling...</div>
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="text-yellow-400 text-xl font-bold animate-pulse mb-4">Loading BelgaCycling...</div>
+        {timedOut && (
+          <div className="text-red-400 text-sm max-w-xs text-center">
+            Connection seems slow or Supabase is not configured. 
+            Check your console or verify your SUPABASE_URL.
+          </div>
+        )}
       </div>
     );
   }
