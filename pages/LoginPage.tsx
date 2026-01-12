@@ -3,11 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
-interface LoginPageProps {
-  onAdminLogin: (user: string, pass: string) => boolean;
-}
-
-const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin }) => {
+const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,27 +15,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isAdminLogin = new URLSearchParams(location.search).get('admin') === 'true';
-
   useEffect(() => {
     setError('');
-  }, [isSignUp, isAdminLogin]);
+  }, [isSignUp]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    if (isAdminLogin) {
-      const success = onAdminLogin(email, password);
-      if (success) {
-        navigate('/admin', { replace: true });
-      } else {
-        setError('Invalid admin credentials.');
-      }
-      setLoading(false);
-      return;
-    }
 
     try {
         if (isSignUp) {
@@ -77,7 +60,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin }) => {
     <div className="max-w-md mx-auto mt-10">
       <div className="bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-700">
         <h1 className="text-3xl font-bold text-center mb-6 text-yellow-400">
-          {isAdminLogin ? 'Admin Access' : (isSignUp ? 'Join Pelotón' : 'Welcome Back')}
+          {isSignUp ? 'Join Pelotón' : 'Welcome Back'}
         </h1>
         
         {error && (
@@ -87,7 +70,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin }) => {
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
-          {isSignUp && !isAdminLogin && (
+          {isSignUp && (
             <>
                 <div>
                     <label className="block text-sm font-medium text-gray-300">Username</label>
@@ -116,10 +99,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-300">
-              {isAdminLogin ? 'Admin Username' : 'Email Address'}
+              Email Address
             </label>
             <input
-              type={isAdminLogin ? 'text' : 'email'}
+              type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -143,20 +126,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onAdminLogin }) => {
             disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-900 bg-yellow-500 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Processing...' : (isAdminLogin ? 'Login' : (isSignUp ? 'Register' : 'Sign In'))}
+            {loading ? 'Processing...' : (isSignUp ? 'Register' : 'Sign In')}
           </button>
         </form>
 
-        {!isAdminLogin && (
-            <div className="mt-6 text-center text-sm">
-                <button 
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-yellow-500 hover:text-yellow-400 font-medium"
-                >
-                    {isSignUp ? 'Already have an account? Sign In' : 'New here? Create an account'}
-                </button>
-            </div>
-        )}
+        <div className="mt-6 text-center text-sm">
+            <button 
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-yellow-500 hover:text-yellow-400 font-medium"
+            >
+                {isSignUp ? 'Already have an account? Sign In' : 'New here? Create an account'}
+            </button>
+        </div>
       </div>
     </div>
   );

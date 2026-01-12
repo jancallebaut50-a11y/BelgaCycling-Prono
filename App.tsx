@@ -49,7 +49,7 @@ const App: React.FC = () => {
             />
             <Route 
               path="/login" 
-              element={<LoginPage onAdminLogin={() => false} />} 
+              element={<LoginPage />} 
             />
           </Routes>
         </main>
